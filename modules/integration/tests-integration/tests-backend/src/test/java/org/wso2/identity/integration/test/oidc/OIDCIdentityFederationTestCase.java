@@ -484,31 +484,18 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
 
     }
 
-//    @Test(priority = 4, groups = "wso2.is", description = "Check logout flow of primary IS service provider")
-//    public void testFederationLogout() throws Exception {
-//
-//    }
-
     private void testLogout(HttpClient client) throws Exception {
 
-
-//        HttpClient httpClient = HttpClientBuilder.create().disableRedirectHandling()
-//                .setDefaultCookieStore(cookieStore).build();
         HttpResponse response = sendGetRequest(client, SAML_SSO_LOGOUT_URL);
         extractValueFromResponse(response, "name=\"sessionDataKey\"", 1);
         Assert.assertNotNull(response);
 
-
-
-//        String locationHeader = getHeaderValue(response, "Location");
-//        Assert.assertNotNull(locationHeader, "locationHeader not found in response.");
-
-//        response = sendGetRequest(client, locationHeader);
-//        Assert.assertNotNull(response);
-
         String logoutResponseToPrimaryIS = testLogoutConsentApproval(client);
         response = sendGetRequest(client, logoutResponseToPrimaryIS);
+        String resultPage = extractDataFromResponse(response);
         Assert.assertNotNull(response);
+        Assert.assertTrue((resultPage.contains("index.jsp") || resultPage.contains("home.jsp")) && !resultPage.contains("error"),
+                    "OIDC Federated Logout Failed.");
     }
 
     private boolean sendSAMLResponseToWebApp(HttpClient client, String samlResponse)
@@ -673,7 +660,6 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
         samlssoServiceProviderDTO.setDoSignAssertions(true);
         samlssoServiceProviderDTO.setDoSignResponse(true);
         samlssoServiceProviderDTO.setDoSingleLogout(true);
-        //samlssoServiceProviderDTO.setDoFrontChannelLogout(true);
         samlssoServiceProviderDTO.setEnableAttributeProfile(true);
         samlssoServiceProviderDTO.setEnableAttributesByDefault(true);
 
