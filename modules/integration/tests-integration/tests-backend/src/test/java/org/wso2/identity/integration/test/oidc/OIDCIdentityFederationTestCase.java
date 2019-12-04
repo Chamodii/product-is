@@ -294,7 +294,7 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
             IOException {
 
         HttpGet getRequest = new HttpGet(locationURL);
-        getRequest.setHeader("User-Agent", OAuth2Constant.USER_AGENT);
+        getRequest.addHeader("User-Agent", OAuth2Constant.USER_AGENT);
         HttpResponse response = client.execute(getRequest);
 
         return response;
@@ -435,6 +435,7 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
 
     private String testAuthzCode(HttpClient client, String authzResponseURL) throws Exception {
 
+
         HttpClient httpClientWithoutAutoRedirections = HttpClientBuilder.create().disableRedirectHandling()
                 .setDefaultCookieStore(cookieStore).build();
         HttpResponse response = sendGetRequest(httpClientWithoutAutoRedirections, authzResponseURL);
@@ -476,24 +477,41 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
         Assert.assertTrue(decodedSAMLResponse.contains("AuthnContextClassRef"), "AuthnContextClassRef is not received" +
                 ".");
 
-        boolean validResponse = sendSAMLResponseToWebApp(samlResponse);
+        boolean validResponse = sendSAMLResponseToWebApp(client, samlResponse);
         Assert.assertTrue(validResponse, "Invalid SAML response received by travelocity app");
 
         testLogout(client);
+
+    }
+
+//    @Test(priority = 4, groups = "wso2.is", description = "Check logout flow of primary IS service provider")
+//    public void testFederationLogout() throws Exception {
+//
+//    }
+
+    private void testLogout(HttpClient client) throws Exception {
+
+
+//        HttpClient httpClient = HttpClientBuilder.create().disableRedirectHandling()
+//                .setDefaultCookieStore(cookieStore).build();
+        HttpResponse response = sendGetRequest(client, SAML_SSO_LOGOUT_URL);
+        extractValueFromResponse(response, "name=\"sessionDataKey\"", 1);
+        Assert.assertNotNull(response);
+
+
+
+//        String locationHeader = getHeaderValue(response, "Location");
+//        Assert.assertNotNull(locationHeader, "locationHeader not found in response.");
+
+//        response = sendGetRequest(client, locationHeader);
+//        Assert.assertNotNull(response);
+
         String logoutResponseToPrimaryIS = testLogoutConsentApproval(client);
         response = sendGetRequest(client, logoutResponseToPrimaryIS);
         Assert.assertNotNull(response);
-
     }
 
-    private void testLogout(HttpClient client) throws IOException {
-
-        HttpGet request = new HttpGet(SAML_SSO_LOGOUT_URL);
-        HttpResponse response = client.execute(request);
-        Assert.assertNotNull(response);
-    }
-
-    private boolean sendSAMLResponseToWebApp(String samlResponse)
+    private boolean sendSAMLResponseToWebApp(HttpClient client, String samlResponse)
             throws Exception {
 
         HttpPost request = new HttpPost(PRIMARY_IS_SAML_ACS_URL);
@@ -501,7 +519,7 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
         List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
         urlParameters.add(new BasicNameValuePair("SAMLResponse", samlResponse));
         request.setEntity(new UrlEncodedFormEntity(urlParameters));
-        HttpResponse response = new DefaultHttpClient().execute(request);
+        HttpResponse response = client.execute(request);
 
         return validateSAMLResponse(response, usrName);
     }
@@ -514,7 +532,7 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
     private String sendSAMLRequestToPrimaryIS(HttpClient client) throws Exception {
 
         HttpGet request = new HttpGet(SAML_SSO_URL);
-        request.addHeader("User-Agent", USER_AGENT);
+        request.setHeader("User-Agent", USER_AGENT);
         HttpResponse response = client.execute(request);
         return extractValueFromResponse(response, "name=\"sessionDataKey\"", 1);
     }
@@ -655,7 +673,7 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
         samlssoServiceProviderDTO.setDoSignAssertions(true);
         samlssoServiceProviderDTO.setDoSignResponse(true);
         samlssoServiceProviderDTO.setDoSingleLogout(true);
-        samlssoServiceProviderDTO.setDoFrontChannelLogout(true);
+        //samlssoServiceProviderDTO.setDoFrontChannelLogout(true);
         samlssoServiceProviderDTO.setEnableAttributeProfile(true);
         samlssoServiceProviderDTO.setEnableAttributesByDefault(true);
 

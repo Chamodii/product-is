@@ -219,6 +219,7 @@ public abstract class AbstractIdentityFederationTestCase extends ISIntegrationTe
         String line = null;
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
         while ((line = bufferedReader.readLine()) != null) {
+            log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>.. Response: " + line);
             if (line.contains(key)) {
                 String[] tokens = line.split("'");
                 value = tokens[token];
