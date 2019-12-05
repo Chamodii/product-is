@@ -492,10 +492,15 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
 
         String logoutResponseToPrimaryIS = testLogoutConsentApproval(client);
         response = sendGetRequest(client, logoutResponseToPrimaryIS);
-        String resultPage = extractDataFromResponse(response);
-        Assert.assertNotNull(response);
-        Assert.assertTrue((resultPage.contains("index.jsp") || resultPage.contains("home.jsp")) && !resultPage.contains("error"),
-                    "OIDC Federated Logout Failed.");
+        String samlLogoutResponse = extractValueFromResponse(response, "SAMLResponse", 5);
+
+        Assert.assertNotNull(samlLogoutResponse, "Unable to acquire SAML Logout response from primary IS");
+
+        String decodedSAMLResponse = new String(Base64.decode(samlLogoutResponse));
+        Assert.assertNotNull(decodedSAMLResponse);
+
+        boolean validResponse = sendSAMLLogoutResponseToWebApp(client, samlLogoutResponse);
+        Assert.assertTrue(validResponse, "Invalid SAML Logout response received by travelocity app");
     }
 
     private boolean sendSAMLResponseToWebApp(HttpClient client, String samlResponse)
@@ -509,6 +514,19 @@ public class OIDCIdentityFederationTestCase extends AbstractIdentityFederationTe
         HttpResponse response = client.execute(request);
 
         return validateSAMLResponse(response, usrName);
+    }
+
+    private boolean sendSAMLLogoutResponseToWebApp(HttpClient client, String samlResponse)
+            throws Exception {
+
+        HttpPost request = new HttpPost(PRIMARY_IS_SAML_ACS_URL);
+        request.setHeader("User-Agent", USER_AGENT);
+        List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+        urlParameters.add(new BasicNameValuePair("SAMLResponse", samlResponse));
+        request.setEntity(new UrlEncodedFormEntity(urlParameters));
+        HttpResponse response = client.execute(request);
+
+        return validateSAMLLogoutResponse(response);
     }
 
     protected String getSecondaryISURI() {
